@@ -6,8 +6,8 @@ module.exports = function(defaults) {
   let app = new EmberApp(defaults, {
     // Add options here
   });
-
-  // Use `app.import` to add additional libraries to the generated
+  app.import('bower_components/async/dist/async.js');
+    // Use `app.import` to add additional libraries to the generated
   // output files.
   //
   // If you need to use different assets in different

@@ -3,6 +3,7 @@
 module.exports = function(environment) {
   let ENV = {
     modulePrefix: 'peg-sol-ai',
+    podModulePrefix: 'peg-sol-ai/pods',
     environment,
     rootURL: '/',
     locationType: 'auto',
