@@ -5,7 +5,7 @@ module.exports = function(environment) {
     modulePrefix: 'peg-sol-ai',
     podModulePrefix: 'peg-sol-ai/pods',
     environment,
-    rootURL: '/',
+    rootURL: '/peg-solitaire-ai/',
     locationType: 'auto',
     EmberENV: {
       FEATURES: {
