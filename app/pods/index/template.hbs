@@ -1,34 +1,83 @@
-{{#if boardVisable}}
-    <svg width="420" height="420">
-        {{#each currBoard as |row i|}}
-            {{#each row as |element j|}}
-                {{#if (eq element -1)}}
-                    <rect width=60 height=60 y={{mult i 60}} x={{mult j 60}} style="fill:rgb(0, 0, 0);stroke-width:3;stroke:rgb(212, 212, 212)" />
-                {{else if (eq element 0)}}
-                    <rect width=60 height=60 y={{mult i 60}} x={{mult j 60}} style="fill:rgb(255, 255, 255);stroke-width:3;stroke:rgb(212, 212, 212)" />
-                {{else if (eq element 1)}}
-                    <circle cx={{add 30 (mult j 60)}} cy={{add 30 (mult i 60)}} r=20 stroke="black" fill="red" />
-                {{/if}}
-            {{/each}}
-        {{/each}}
-    </svg>
-        <button disabled={{dfsTask.isRunning}} {{action "depthFirstSearch" currBoard}}>Depth First Search</button>
-    <svg width="420" height="420">
-        {{#each bfsBoard as |row i|}}
-            {{#each row as |element j|}}
-                {{#if (eq element -1)}}
-                    <rect width=60 height=60 y={{mult i 60}} x={{mult j 60}} style="fill:rgb(0, 0, 0);stroke-width:3;stroke:rgb(212, 212, 212)" />
-                {{else if (eq element 0)}}
-                    <rect width=60 height=60 y={{mult i 60}} x={{mult j 60}} style="fill:rgb(255, 255, 255);stroke-width:3;stroke:rgb(212, 212, 212)" />
-                {{else if (eq element 1)}}
-                    <circle cx={{add 30 (mult j 60)}} cy={{add 30 (mult i 60)}} r=20 stroke="black" fill="red" />
-                {{/if}}
-            {{/each}}
-        {{/each}}
-    </svg>
-        <button disabled={{dfsTask.isRunning}} {{action "breadthFirstSearch" bfsBoard}}>Breadth First Search</button>
+<div class="top">
     <div>
-        {{a-star}}
+        <svg width="420" height="420">
+            {{#each currBoard as |row i|}}
+                {{#each row as |element j|}}
+                    {{#if (eq element 2)}}
+                        <rect width=60 height=60 y={{mult i 60}} x={{mult j 60}} style="fill:rgb(0, 0, 0);stroke-width:3;stroke:rgb(212, 212, 212)" />
+                    {{else if (eq element 0)}}
+                        <rect width=60 height=60 y={{mult i 60}} x={{mult j 60}} style="fill:rgb(255, 255, 255);stroke-width:3;stroke:rgb(212, 212, 212)" />
+                    {{else if (eq element 1)}}
+                        <circle cx={{add 30 (mult j 60)}} cy={{add 30 (mult i 60)}} r=20 stroke="black" fill="red" />
+                    {{/if}}
+                {{/each}}
+            {{/each}}
+        </svg>
+        <div>
+            Search Results {{results.length}}:
+            {{#each results as |r|}}
+            {{r.time}}
+            {{/each}}
+
+        </div>
     </div>
-    
-{{/if}}
+    <div class="button-column">
+        Search Type:
+        {{#bs-button-group
+            class = 'option'
+            value=mode
+            type="radio"
+            onChange=(action (mut mode)) as |bg|}}
+            {{#bg.button value=1}}DFS{{/bg.button}}
+            {{#bg.button value=2}}BFS{{/bg.button}}
+            {{#bg.button value=3}}A*{{/bg.button}}
+        {{/bs-button-group}}
+        Heuristic:
+        {{#bs-button-group
+            class = 'option'   
+            value=heuristic
+            type="radio"
+            onChange=(action (mut heuristic)) as |bg|}}
+            {{#bg.button value=1}}Num Moves{{/bg.button}}
+            {{#bg.button value=2}}Num Middle Pegs{{/bg.button}}
+            {{#bg.button value=3}}Num Edges{{/bg.button}}
+            {{#bg.button value=4}}All Combined{{/bg.button}}
+        {{/bs-button-group}}
+        Board Options:
+        <div class="top">
+            {{#bs-button class='option' onClick=(action 'swapBoard' hardBoard)}}
+                Hard Board
+            {{/bs-button}}
+            {{#bs-button class='option' onClick=(action 'swapBoard' simpleBoard)}}
+                Simple Board
+            {{/bs-button}}
+        </div>
+        
+        
+        Playback Speed:
+        {{#bs-button-group
+            class = 'option'
+            value=speed
+            type="radio"
+            onChange=(action (mut speed)) as |bg|}}
+            {{#bg.button value=1}}1x{{/bg.button}}
+            {{#bg.button value=2}}2x{{/bg.button}}
+            {{#bg.button value=3}}3x{{/bg.button}}
+        {{/bs-button-group}}
+        {{#bs-button class='option' onClick=(action 'resetDefaults')}}
+            Reset Board
+        {{/bs-button}}
+         {{#bs-button class='option' onClick=(action 'doSearch' mode)}}
+                Perform Search
+            {{/bs-button}}
+    </div>
+
+</div>
+
+{{!-- 
+<div>CurrentPlayer: {{currPlayer}}</div>
+<div>Board Dimensions: {{n}} * {{n}}</div>
+<div>Board State: {{board}}</div>
+Nodes Visited: {{lastNodes}} --}}
+
+{{yield}}

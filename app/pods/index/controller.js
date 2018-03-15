@@ -8,15 +8,19 @@ import async from 'async';
 
 export default Controller.extend({
     boardVisable: true,
+    results: [],
     dfsSolution: [],
+    mode: 1,
+    speed: 1,
+    heuristic: 1,
     currBoard: [
-        [-1,-1,0,0,0,-1,-1],
-        [-1, 0,0,0,0, 1,-1],
-        [ 1, 1,0,0,1, 0, 0],
-        [ 1, 1,1,0,1, 0, 0],
-        [ 1, 0,0,1,1, 0, 0],
-        [-1, 0,0,0,1, 1,-1], 
-        [-1,-1,0,0,1,-1,-1]
+        [ 2, 2,1,1,1, 2, 2],
+        [ 2, 1,1,1,1, 1, 2],
+        [ 1, 1,1,0,1, 1, 1],
+        [ 1, 1,1,1,1, 1, 1],
+        [ 1, 1,1,1,1, 1, 1],
+        [ 2, 1,1,1,1, 1, 2], 
+        [ 2, 2,1,1,1, 2, 2]
     ],
     hardBoard: [
         [ 2, 2,1,1,1, 2, 2],
@@ -28,143 +32,141 @@ export default Controller.extend({
         [ 2, 2,1,1,1, 2, 2]
     ],
     simpleBoard: [
-        [-1,-1,0,0,0,-1,-1],
-        [-1, 0,0,0,0, 1,-1],
+        [ 2, 2,0,0,0, 2, 2],
+        [ 2, 0,0,0,0, 1, 2],
         [ 1, 1,0,0,1, 0, 0],
         [ 1, 1,1,0,1, 0, 0],
         [ 1, 0,0,1,1, 0, 0],
-        [-1, 0,0,0,1, 1,-1], 
-        [-1,-1,0,0,1,-1,-1]
+        [ 2, 0,0,0,1, 1, 2], 
+        [ 2, 2,0,0,1, 2, 2]
     ],
-    bfsBoard: [
-        [-1,-1,0,0,0,-1,-1],
-        [-1, 0,0,0,0, 1,-1],
-        [ 1, 1,0,0,1, 0, 0],
-        [ 1, 1,1,0,1, 0, 0],
-        [ 1, 0,0,1,1, 0, 0],
-        [-1, 0,0,0,1, 1,-1], 
-        [-1,-1,0,0,1,-1,-1]
-    ],
-
-    dfsTask: task(function * (env) {
+    
+    search: task(function * (mode,env) {
         let timeStart = moment.now()
         let posMoves = []
         let stack = []
         let oldMoves = new Set()
-        let curr = this.dupState(env)
+        let curr = {
+            board:this.dupState(env),
+            parent: null
+        }
         let moves = []
         let i = 0
         let k = 0
         let bestSol = 0
         let newMoves = []
-        return yield timeout().then(() => {
-            while(moves.length < 13) {
-                posMoves = this.possibleMoves(curr)
-                newMoves = []
-                while(posMoves.length > 0){
-                    let temp1 = posMoves.pop()
-                    for(let x = 0; x<4; x++){
-                        newMoves.push(temp1)
-                        if(oldMoves.has(temp1.toString())){
-                            newMoves.pop()
-                            break
-                        }
-                        temp1 = this.transposeArray(temp1)
-                    }
-
+        while(!this.finalPeg(curr.board)) {
+            posMoves = this.possibleMoves(curr)
+            newMoves = []
+            while(posMoves.length > 0){
+                let temp1 = posMoves.pop()
+                if(!oldMoves.has(temp1.board.toString())){
+                    newMoves.push(temp1)
                 }
-                stack.push(this.dupState(newMoves))
-                moves.push(curr)
-                
-                while(true){
-                    while(stack[stack.length-1].length === 0){
-                        stack.pop()
-                        moves.pop()
-                    }
-                    curr = this.dupState(stack[stack.length-1].pop())
-                    
-                    if(!oldMoves.has(curr.toString())){
-                        break
-                    }else{
-                        k++
-                    }
-                }
-                // if(moves.length > bestSol){
-                //     bestSol = moves.length
-                //     //console.log(moves.length, bestSol, stack.length, i, k)
-                //     //console.log(moves.toString())
-                // }
-                if(i%10000 === 0){
-                    console.log(moves.length, bestSol, stack.length, i, k)
-                }
-                oldMoves.add(curr.toString())
-                i++
             }
-            this.set('currBoard',curr)
-            this.set('dfsSolution',moves)
-            console.log(moves)
-            console.log(moves.length, bestSol, stack.length, i, k)
-            console.log(((moment.now()-timeStart)/1000).toString() + " seconds")
+            stack.push(newMoves)
+            
+            if(mode === 1){
+                while(stack.length > 0 && stack[stack.length-1].length === 0){
+                    stack.pop()
+                }
+                curr = stack[stack.length-1].pop()
+            }else if(mode === 2){
+                while(oldMoves.has(curr.board.toString())){
+                    while(stack.length > 0 && stack[0].length === 0){
+                        stack.shift()
+                    }
+                    curr = stack[0].pop()
+                }
+            }
+
+            if(i%10000 === 0){
+                let a = curr
+                let x = 0
+                while(a !== null){
+                    x++
+                    a = a.parent
+                }
+                console.log(x)
+                console.log(bestSol, stack.length, i, k)
+            }
+            oldMoves.add(curr.board.toString())
+            i++
+        }
+        this.get('results').push({
+            finalState: curr,
+            time: (moment.now()-timeStart)/1000,
+            checks: i
         })
+        debugger
+        let x = 0
+        while(curr !== null){
+            moves.push(curr.board)
+            curr = curr.parent
+        }
+        
+        this.get('playMoves').perform(moves)
+        console.log(x)
+        console.log(curr)
+        console.log(moves.length, bestSol, stack.length, i, k)
+        console.log(((moment.now()-timeStart)/1000).toString() + " seconds")
     }),
 
-    dfsBonusTask: task(function * (env) {
+    aStarSearch: task(function * (env){
         let timeStart = moment.now()
-        let posMoves = []
-        let stack = []
-        let oldMoves = new Set()
-        let curr = this.dupState(env)
+        let curr = {
+            board:this.dupState(env),
+            parent: null,
+            score: 0
+        }
         let moves = []
-        let i = 0
-        let k = 0
-        let bestSol = 0
-        let newMoves = []
-        return yield timeout().then(() => {
-            while(moves.length < 35) {
-                posMoves = this.possibleMoves(curr)
-                newMoves = []
-                while(posMoves.length > 0){
-                    let temp1 = posMoves.pop()
-                    newMoves.push(temp1)
-                    if(oldMoves.has(temp1.toString())){
-                        newMoves.pop()
-                        break
-                    }
-
-                }
-                stack.push(this.dupState(newMoves))
-                moves.push(curr)
-                
-                while(true){
-                    while(stack[stack.length-1].length === 0){
-                        stack.pop()
-                        moves.pop()
-                    }
-                    curr = this.dupState(stack[stack.length-1].pop())
-                    
-                    if(!oldMoves.has(curr.toString())){
-                        break
+        let open = new Map()
+        let closed = new Set()
+        let pegs = 35
+        let i =0
+        while (!this.finalPeg(curr.board))  {
+            let newMoves = this.possibleMoves(curr)
+            while(newMoves.length > 0){
+                let temp1 = newMoves.pop()
+                if(!closed.has(temp1.board.toString())){
+                    if(open.has(temp1.score)){
+                        open.get(temp1.score).push(temp1)
                     }else{
-                        k++
+                        open.set(temp1.score, [temp1])
                     }
                 }
-                // if(moves.length > bestSol){
-                //     bestSol = moves.length
-                //     //console.log(moves.length, bestSol, stack.length, i, k)
-                //     //console.log(moves.toString())
-                // }
-                if(i%10000 === 0){
-                    console.log(moves.length, bestSol, stack.length, i, k)
-                }
-                oldMoves.add(curr.toString())
-                i++
             }
-            this.set('currBoard',curr)
-            this.set('dfsSolution',moves)
-            console.log(moves)
-            console.log(moves.length, bestSol, stack.length, i, k)
-            console.log(((moment.now()-timeStart)/1000).toString() + " seconds")
+            while(open.get(Math.min.apply(null,Array.from(open.keys())))[0] == undefined){
+                open.delete(Math.min.apply(null,Array.from(open.keys())))[0]
+            }
+            curr = open.get(Math.min.apply(null,Array.from(open.keys()))).pop()
+            
+            i++
+            if(i%10000 === 0){
+                console.log(i, Math.min.apply(null,Array.from(open.keys())), open.size, closed.size)
+            }
+        }
+        while(curr !== null){
+            moves.push(curr.board)
+            curr = curr.parent
+        }
+        this.get('results').push({
+            finalState: curr,
+            time: (moment.now()-timeStart)/1000,
+            checks: i
         })
+        this.get('playMoves').perform(moves)
+        console.log(curr)
+        console.log(moves.length)
+        console.log(((moment.now()-timeStart)/1000).toString() + " seconds")
+    }),
+
+    playMoves: task(function * (moves) {
+        yield timeout(1000/this.get('speed'))
+        this.set('currBoard',moves.pop())
+        if(moves.length > 0){
+            this.get('playMoves').perform(moves)
+        }
     }),
 
     dupState (input) {
@@ -229,113 +231,138 @@ export default Controller.extend({
         return bOne.toString() === bTwo.toString()
     },
 
-    possibleMoves(env) {
+    getScore(board){
+        let option = this.get('heuristic')
+
+        switch(option){
+            case 1:
+                return this.numPossibleMoves({board:board})
+            case 2:
+                return this.numCenterPegs(board)
+            case 3:
+                return this.numEdgePegs(board)*-1
+            case 4:
+                debugger
+                return this.numPossibleMoves(board) + 
+                        this.numCenterPegs(board) + 
+                        this.numEdgePegs(board)*-1
+        }
+    },
+
+    numEdgePegs (i) {
+        return i[0][2] + i[0][3] + i[0][4]
+             //+ i[1][1] + i[1][5]
+             + i[2][0] + i[2][6]
+             + i[3][0] + i[3][6]
+             + i[4][0] + i[4][6]
+             //+ i[5][1] + i[5][5]
+             + i[6][2] + i[6][3] + i[6][4]
+
+    },
+
+    numCenterPegs (i) {
+        return i[2][2] + i[2][3] + i[2][4]
+             + i[3][2] + i[3][3] + i[3][4]
+             + i[4][2] + i[4][3] + i[4][4]
+    },
+
+    numPossibleMoves (i) {
+        return (this.possibleMoves(i)).length
+    },
+
+    possibleMoves(parent) {
+        let env = this.dupState(parent.board)
         let moves = []
+        let mode = this.get('mode')
+        let a = null
         for (let i = 0; i<env.length; i++) {
             for (let j = 0; j<env[i].length; j++) {
                 if(env[i][j] === 0){ 
                     if((j>1) && (env[i][j-1] === 1) && (env[i][j-2] === 1)){
-                        moves[moves.length] = this.dupState(env)
-                        moves[moves.length-1][i][j] = 1
-                        moves[moves.length-1][i][j-1] = 0
-                        moves[moves.length-1][i][j-2] = 0
+                        a = this.dupState(env)
+                        a[i][j] = 1
+                        a[i][j-1] = 0
+                        a[i][j-2] = 0
+                        moves[moves.length] = {
+                            board: a,
+                            parent: parent,
+                            score: (mode === 3) ? this.getScore(a):0
+                        }
                     }
                     if((j<5) && (env[i][j+1] === 1) && (env[i][j+2] === 1)){
-                        moves[moves.length] = this.dupState(env)
-                        moves[moves.length-1][i][j] = 1
-                        moves[moves.length-1][i][j+1] = 0
-                        moves[moves.length-1][i][j+2] = 0
+                        a = this.dupState(env)
+                        a[i][j] = 1
+                        a[i][j+1] = 0
+                        a[i][j+2] = 0
+                        moves[moves.length] = {
+                            board: this.dupState(a),
+                            parent: parent,
+                            score: (mode === 3) ? this.getScore(a):0
+                        }
                     } 
                     if((i>1) && (env[i-1][j] === 1) && (env[i-2][j] === 1)){
-                        moves[moves.length] = this.dupState(env)
-                        moves[moves.length-1][i][j] = 1
-                        moves[moves.length-1][i-1][j] = 0
-                        moves[moves.length-1][i-2][j] = 0
+                        a = this.dupState(env)
+                        a[i][j] = 1
+                        a[i-1][j] = 0
+                        a[i-2][j] = 0
+                        moves[moves.length] = {
+                            board: this.dupState(a),
+                            parent: parent,
+                            score: (mode === 3) ? this.getScore(a):0
+                        }
                     } 
                     if((i<5) && (env[i+1][j] === 1) && (env[i+2][j] === 1)){
-                        moves[moves.length] = this.dupState(env)
-                        moves[moves.length-1][i][j] = 1
-                        moves[moves.length-1][i+1][j] = 0
-                        moves[moves.length-1][i+2][j] = 0
-                    } 
+                        a = this.dupState(env)
+                        a[i][j] = 1
+                        a[i+1][j] = 0
+                        a[i+2][j] = 0
+                        moves[moves.length] = {
+                            board: this.dupState(a),
+                            parent: parent,
+                            score: (mode === 3) ? this.getScore(a):0
+                        }
+                    }
                 }
             }
         }
         return moves
-    },
-    
-    sleep (milliseconds) {
-        var start = new Date().getTime();
-        for (var i = 0; i < 1e7; i++) {
-          if ((new Date().getTime() - start) > milliseconds){
-            break;
-          }
-        }
     },
 
     actions: {
         depthFirstSearch (env) {
             this.get('dfsTask').perform(env)
         },
-       
-        breadthFirstSearch (env) {
-            let timeStart = moment.now()
-            let posMoves = []
-            let stack = []
-            let levelSize = []
-            let oldMoves = new Set()
-            let curr = this.dupState(env)
-            let moves = []
-            let i = 0
-            let k = 0
-            let bestSol = 0
-            let newMoves = []
-            while(!this.finalPeg(curr)) {
-                posMoves = this.possibleMoves(curr)
-                newMoves = []
-                while(posMoves.length > 0){
-                    let temp1 = posMoves.pop()
-                    for(let x = 0; x<4; x++){
-                        newMoves.push(temp1)
-                        if(oldMoves.has(temp1.toString())){
-                            newMoves.pop()
-                            break
-                        }
-                        temp1 = this.transposeArray(temp1)
-                    }
+        resetDefaults (){
+            this.set('currBoard', this.get('hardBoard'))
+            this.set('heuristic', 1)
+            this.set('speed', 1)
+            this.set('mode',1)
+        },
 
-                }
-                stack.push(this.dupState(newMoves))
-                moves.push(curr)
-                
-                while(true){
-                    while(stack[0].length === 0){
-                        stack.shift()
-                    }
-                    curr = this.dupState(stack[0].pop())
-                    if(!oldMoves.has(curr.toString())){
-                        break
-                    }else{
-                        k++
-                    }
-                }
-                if(moves.length > bestSol){
-                    bestSol = moves.length
-                    //console.log(moves.length, bestSol, stack.length, i, k)
-                    //console.log(moves.toString())
-                }
-                oldMoves.add(curr.toString())
-                if(i%10000 === 0){
-                    console.log(moves.length, bestSol, stack.length, i, k)
-                }
-                i++
-            }
-            this.set('bfsBoard',curr)
-            console.log(moves.length, bestSol, stack.length, i, k)
-            console.log(((moment.now()-timeStart)/1000).toString() + " seconds")
-            return moves
+        swapBoard (board){
+            this.set('currBoard', board)
+        },
+
+        heuristicSelect (num){
+            this.set('heuristic', num)
+        },
+
+        speedSelect (num){
+            this.set('speed', num)
+        },
+
+        modeSelect (mode){
+            this.set('mode', mode)
             
         },
+
+        doSearch (mode) {
+            if(mode !== 3){
+                this.get('search').perform(mode,this.get('currBoard'))
+            }else{
+                this.get('aStarSearch').perform(this.get('currBoard'))
+            }
+        }
         
     }
 });
