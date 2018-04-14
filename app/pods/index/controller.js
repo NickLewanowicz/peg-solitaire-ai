@@ -1,9 +1,5 @@
 import Controller from '@ember/controller'
 import { task, timeout } from 'ember-concurrency'
-import { get, set } from '@ember/object'
-import { isEmpty } from '@ember/utils'
-import computed from 'ember-macro-helpers/computed'
-import async from 'async';
 
 
 export default Controller.extend({
@@ -13,6 +9,7 @@ export default Controller.extend({
     mode: 1,
     speed: 1,
     heuristic: 1,
+    nodesVisited: 0,
     currBoard: [
         [ 2, 2,1,1,1, 2, 2],
         [ 2, 1,1,1,1, 1, 2],
@@ -41,7 +38,7 @@ export default Controller.extend({
         [ 2, 2,0,0,1, 2, 2]
     ],
     
-    search: task(function * (mode,env) {
+    search: task (function * (mode,env) {
         let timeStart = moment.now()
         let posMoves = []
         let stack = []
@@ -81,6 +78,8 @@ export default Controller.extend({
             }
 
             if(i%10000 === 0){
+                this.set('nodesVisited',i)
+                yield timeout(1)
                 let a = curr
                 let x = 0
                 while(a !== null){
@@ -98,7 +97,6 @@ export default Controller.extend({
             time: (moment.now()-timeStart)/1000,
             checks: i
         })
-        debugger
         let x = 0
         while(curr !== null){
             moves.push(curr.board)
@@ -143,6 +141,8 @@ export default Controller.extend({
             
             i++
             if(i%10000 === 0){
+                yield timeout(1)
+                this.set('nodesVisited',i)
                 console.log(i, Math.min.apply(null,Array.from(open.keys())), open.size, closed.size)
             }
         }
@@ -357,11 +357,13 @@ export default Controller.extend({
         },
 
         doSearch (mode) {
+            this.get('search').cancelAll()
             if(mode !== 3){
                 this.get('search').perform(mode,this.get('currBoard'))
             }else{
                 this.get('aStarSearch').perform(this.get('currBoard'))
             }
+            
         }
         
     }

@@ -68,7 +68,11 @@
             Reset Board
         {{/bs-button}}
          {{#bs-button class='option' onClick=(action 'doSearch' mode)}}
-                Perform Search
+                {{#if search.isRunning}} 
+                    {{div nodesVisited 1000}}k Nodes Visted (click to restart)
+                {{else}}
+                    Perform Search
+                {{/if}}
             {{/bs-button}}
     </div>
 
